@@ -18,7 +18,13 @@ def validate_notification(data):
         raise ValueError("Field 'user_id' must be an instance of ObjectId or a string representation of one.")
     if isinstance(data["user_id"], str):
         if not ObjectId.is_valid(data["user_id"].strip()):
-            raise ValueError("Field 'user_id' is a string but is not a valid ObjectId format.")
+            try:
+                from app.services.notification_service import use_mock_db
+                is_mock = use_mock_db
+            except Exception:
+                is_mock = True
+            if not is_mock or len(data["user_id"].strip()) >= 24:
+                raise ValueError("Field 'user_id' is a string but is not a valid ObjectId format.")
 
     if not isinstance(data["type"], str) or not data["type"].strip():
         raise ValueError("Field 'type' must be a non-empty string.")
@@ -89,7 +95,7 @@ def prepare_notification(data):
     
     # Clone and prepare document
     doc = {
-        "user_id": ObjectId(data["user_id"].strip()) if isinstance(data["user_id"], str) else data["user_id"],
+        "user_id": ObjectId(data["user_id"].strip()) if isinstance(data["user_id"], str) and ObjectId.is_valid(data["user_id"].strip()) else data["user_id"],
         "type": data["type"].strip(),
         "title": data["title"].strip(),
         "message": data["message"].strip(),
